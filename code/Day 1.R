@@ -1,8 +1,3 @@
-usethis::use_git_config(user.name = "sund9920", user.email = "scribbler992@gmail.com")
-credentials::credential_helper_set("store")                   # Linux
-usethis::create_github_token()
-#token : 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
-credentials::set_github_pat()
 
 
 library(data.table)
