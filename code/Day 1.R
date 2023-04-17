@@ -37,3 +37,7 @@ dt[[v]] # HGHT as vector
 dt[, v] #doesnt work
 dt[, ..v] # HGHT as list
 dt[, "HGHT"] # HGHT as list. why does it work without .., weird
+
+
+
+# 3
