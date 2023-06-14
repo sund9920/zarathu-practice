@@ -412,7 +412,7 @@ False Positive Rate (1 - Specificity) = <span class="math inline">\(\frac{4}{71 
 <div class="columns">
 <div class="column" style="width:50%;">
 <ul>
-<li>모든 가능한 threshold의 TPR vs FPR을 연결하면 ROC curve가 된다</li>
+<li>하나의 모델에서 가능한 모든 threshold의 TPR vs FPR을 연결하면 ROC curve가 된다</li>
 <li>Random Classifier
 <ul>
 <li>랜덤하게 Cancer/Normal 배정한다면<br>
@@ -431,7 +431,7 @@ True positive rate = False Positive Rate</li>
 <section id="auc" class="slide level2">
 <h2>AUC</h2>
 <div class="columns">
-<div class="column" style="width:40%;">
+<div class="column" style="width:50%;">
 <ul>
 <li>AUC: Area Under Curve, ROC 아래 면적
 <ul>
@@ -440,11 +440,38 @@ True positive rate = False Positive Rate</li>
 </ul></li>
 <li>AUC를 이용해 모델의 분류 성능을 수치화하고 비교할 수 있다</li>
 </ul>
-</div><div class="column" style="width:60%;">
+</div><div class="column" style="width:50%;">
 <center>
 <div class="cell">
 <div class="cell-output-display">
 <p><img data-src="index_files/figure-revealjs/unnamed-chunk-7-1.png" width="960"></p>
+</div>
+</div>
+</center>
+</div>
+</div>
+</section>
+<section id="여러-모델간의-auc-비교" class="slide level2">
+<h2>여러 모델간의 AUC 비교</h2>
+<div class="columns">
+<div class="column" style="width:50%;">
+<ul>
+<li>모델 A의 AUC가 모델 B의 AUC보다 높으면 무조건적으로 A가 더 나은 모델인가?
+<ul>
+<li>그럴수도 있지만 (ex. 모델 구축에 사용된 변수들의 차이가 실제로 유의미) 아닐수도 있다 (ex. 데이터 부족으로 인한 우연)</li>
+<li>따라서 둘의 AUC 차이가 통계적으로 유의미 한지 p-value를 통해 평가한다</li>
+</ul></li>
+<li>두 AUC의 차이가 우연이 아닌 실제 유의미한 차이를 가정할 수 있을만큼 충분히 큰가?
+<ul>
+<li>P-value: <strong>차이가 없다는 가정</strong>하에, 차이가 있다고 판단할 확률</li>
+<li>보통 P-value&lt;0.05일때 두 모델은 통계적으로 유의미한 차이가 있다고 받아들인다</li>
+</ul></li>
+</ul>
+</div><div class="column" style="width:50%;">
+<center>
+<div class="cell">
+<div class="cell-output-display">
+<p><img data-src="index_files/figure-revealjs/unnamed-chunk-8-1.png" width="960"></p>
 </div>
 </div>
 </center>

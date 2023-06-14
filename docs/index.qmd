@@ -163,7 +163,7 @@ False Positive Rate (1 - Specificity) = $\frac{4}{71 + 4}$ = 0.053
 
 ::: columns
 ::: {.column width="50%"}
--   모든 가능한 threshold의 TPR vs FPR을 연결하면 ROC curve가 된다
+-   하나의 모델에서 가능한 모든 threshold의 TPR vs FPR을 연결하면 ROC curve가 된다
 -   Random Classifier
     -   랜덤하게 Cancer/Normal 배정한다면\
         True positive rate = False Positive Rate
@@ -183,20 +183,19 @@ rocfull +
 ## AUC
 
 ::: columns
-::: {.column width="40%"}
+::: {.column width="50%"}
 -   AUC: Area Under Curve, ROC 아래 면적
     -   Random classifier: AUC = 0.5
     -   Perfect classifier: AUC = 1
 -   AUC를 이용해 모델의 분류 성능을 수치화하고 비교할 수 있다
 :::
 
-::: {.column width="60%"}
+::: {.column width="50%"}
 <center>
 
 ```{r,fig.width=10, fig.height=8}
 var1<-c("Sex", "Age", "Smoking", paste0("marker", c(1,2,7,11)))
 var2<-c("Sex", "Age", "Smoking", paste0("marker", 15:20))
-
 
 plots <- lapply(paste0("var", 1:2), function(x){
   model.roc <- glm(as.formula(paste0("Group ~ ", paste(get(x), collapse = "+ "))), data = data, family = binomial)
@@ -241,6 +240,35 @@ for(i in 1:2) {
 #     inherit.aes = F) 
 #   } 
 p
+              
+```
+
+</center>
+:::
+:::
+
+## 여러 모델간의 AUC 비교
+
+::: columns
+::: {.column width="50%"}
+-   모델 A의 AUC가 모델 B의 AUC보다 높으면 무조건적으로 A가 더 나은 모델인가?
+    -   그럴수도 있지만 (ex. 모델 구축에 사용된 변수들의 차이가 실제로 유의미) 아닐수도 있다 (ex. 데이터 부족으로 인한 우연)
+    -   따라서 둘의 AUC 차이가 통계적으로 유의미 한지 p-value를 통해 평가한다
+-   두 AUC의 차이가 우연이 아닌 실제 유의미한 차이를 가정할 수 있을만큼 충분히 큰가?
+    -   P-value: **차이가 없다는 가정**하에, 차이가 있다고 판단할 확률
+    -   보통 P-value\<0.05일때 두 모델은 통계적으로 유의미한 차이가 있다고 받아들인다
+:::
+
+::: {.column width="50%"}
+<center>
+
+```{r,fig.width=10, fig.height=8}
+
+pval <- roc.test(plots[[1]], plots[[2]])$p.value
+p + geom_text(label = paste0("p-value = ", round(pval, 3)), col = 1, y=0.05, x=0.9)
+
+# pvalue가 낮을수록 차이가 있다고 잘못 판단되었을 확률이 낮다
+
               
 ```
 
