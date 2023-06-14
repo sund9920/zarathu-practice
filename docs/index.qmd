@@ -1,24 +1,249 @@
 ---
-title: "index.qmd"
-format: revealjs
+title: "ROC 설계와 해석"
+format:
+  revealjs:
+    width: 1600
+    height: 900
 editor: visual
 ---
 
-## Quarto
+## Intro
 
-Quarto enables you to weave together content and executable code into a finished presentation. To learn more about Quarto presentations see <https://quarto.org/docs/presentations/>.
+1.  What is ROC?
+2.  Confusion Matrix
+3.  ROC Curve 설계
+4.  AUC
 
-## Bullets
+## What is ROC?
 
-When you click the **Render** button a document will be generated that includes:
+-   ROC: Receiver Operating Characteristic
+    -   Binary classifier system (ex. logistic regression model)의 성능 평가 기법
+    -   한마디로, logistic regression 모델이 우리의 데이터를 얼마나 잘 Cancer/Normal로 분류하는지 평가
 
--   Content authored with markdown
--   Output from executable code
+## Confusion Matrix: 예측값 vs. 실제값
 
-## Code
+::: columns
+::: {.column width="50%"}
+-   True Positive Rate (Sensitivity) = $\frac{TP}{TP + FN}$
+    -   모든 양성 실제값 중 양성으로 예측된 비율
+:::
 
-When you click the **Render** button a presentation will be generated that includes both content and the output of embedded code. You can embed code like this:
+::: {.column width="50%"}
+-   False Positive Rate (1 - Specificity) = $\frac{FP}{TN + FP}$
+    -   모든 음성 실제값 중 양성으로 예측된 비율
+:::
+:::
+
+![](IMG_1100.jpg){fig-align="center"}
+
+## ROC Curve 설계
 
 ```{r}
-1 + 1
+#| layout-ncol: 2
+#| column: page
+library(magrittr); library(data.table); library(pROC);library(ggplot2);library(pammtools)
+data<-fread("alist.csv")
+data<-data[Group %in% c("Normal", "Cancer")][, `:=` (Group = as.integer(Group == "Cancer"), 
+                                                     Sex = ifelse(Sex == "F", 0, 1))][]
+var1<-c("Sex", "Age", "Smoking", paste0("marker", c(1,2,7,11)))
+
+model.roc <- glm(as.formula(paste0("Group ~ ", paste(var1, collapse = "+ "))), data = data, family = binomial)
+fit<-data.table(y = model.roc$y, x = model.roc$fitted.values)
+
+
+label<- c("False Negative","True Positive","False Positive","True Negative")
+position <- list(c(1,-1), c(1,1), c(-1,1), c(-1,-1))
+tag <- c("FN", "TP", "FP", "TN")
+
+p<-ggplot(data = fit, mapping = aes(x = x, y = y)) +
+  xlab("Score") + ylab("Prediction (1 = Cancer)") +
+  stat_smooth(method="glm", se=F, method.args = list(family=binomial)) +
+  theme_classic()+
+  theme(legend.position = "none")
+
+p1 <- p +
+    geom_point(aes(x, y, color = ifelse((x>0.3673658672 & y==1)|(x<0.3673658672 & y==0), "black", "red")))+
+    scale_color_identity()+
+    geom_abline(intercept = 0.25430255, slope = 0, linetype = "dashed", color = "grey") +
+    geom_vline(xintercept=0.3673658672, linetype = "dashed", color = "grey")
+
+p2 <- p +
+    geom_point(aes(x, y, color = ifelse((x>0.7089803684 & y==1)|(x<0.7089803684 & y==0), "black", "red")))+
+    scale_color_identity()+
+    geom_abline(intercept = 0.80518594, slope = 0, linetype = "dashed", color = "grey") +
+    geom_vline(xintercept=0.7089803684, linetype = "dashed", color = "grey")
+
+TP1 <- fit[x>0.3673658672 & y==1] %>% nrow
+TN1 <- fit[x<0.3673658672 & y==0] %>% nrow
+FN1 <- fit[x<0.3673658672 & y==1] %>% nrow
+FP1 <- fit[x>0.3673658672 & y==0] %>% nrow
+
+TP2 <- fit[x>0.7089803684 & y==1] %>% nrow
+TN2 <- fit[x<0.7089803684 & y==0] %>% nrow
+FN2 <- fit[x<0.7089803684 & y==1] %>% nrow
+FP2 <- fit[x>0.7089803684 & y==0] %>% nrow
+
+sens1<- TP1/(TP1 + FN1)
+spec1<- FP1/(TN1 + FP1)
+sens2<- TP2/(TP2 + FN2)
+spec2<- FP2/(TN2 + FP2)
+
+for(i in 1:4) {
+  p1 <- p1 +
+    geom_text(label = paste0(label[i], " (n=", get(paste0(tag[i], 1)),")"), col = (i%%2)+1, y=0.25430255+ 0.05*position[[i]][1] , x=0.3673658672+0.15*position[[i]][2])
+  
+  p2 <- p2 +
+    geom_text(label = paste0(label[i], " (n=", get(paste0(tag[i], 2)),")"), col = (i%%2)+1, y=0.80518594+ 0.05*position[[i]][1] , x=0.7089803684+0.15*position[[i]][2])
+}
+
+
+dummy<-roc(aSAH$outcome, aSAH$s100b)
+dummyplot<-ggroc(dummy, color = 'white',
+     legacy.axes = T) +
+  xlab("1 - Specificity (False Positive Rate)") + ylab("Sensitivity (True Positive Rate)") +
+  theme_classic()
+
+sens1<- TP1/(TP1 + FN1)
+spec1<- FP1/(TN1 + FP1)
+
+rocpoint<-dummyplot +
+  annotate("point", x = spec1, y = sens1, colour = "red") +
+  xlab("1 - Specificity (False Positive Rate)") + ylab("Sensitivity (True Positive Rate)") +
+  theme(legend.position = "none")+
+  labs(colour ="")
+
+demoroc<- pROC::roc(model.roc$y, model.roc$fitted.values, ci=T)
+
+rocfull<-ggroc(demoroc,
+     legacy.axes = T) +
+  xlab("1 - Specificity (False Positive Rate)") + ylab("Sensitivity (True Positive Rate)") +
+  theme_classic() +
+  theme(legend.position = "bottom")
+
+?ggroc
 ```
+
+::: columns
+::: {.column width="50%"}
+```{r,fig.width=10,fig.height=8}
+p1
+```
+:::
+
+::: {.column width="50%"}
+```{r,fig.width=10,fig.height=8}
+rocpoint
+```
+:::
+
+True Positive Rate (Sensitivity) = $\frac{69}{69 + 3}$ = 0.958\
+False Positive Rate (1 - Specificity) = $\frac{9}{66 + 9}$ = 0.120
+:::
+
+## ROC Curve 설계
+
+::: columns
+::: {.column width="50%"}
+```{r,fig.width=10,fig.height=8}
+p2
+```
+:::
+
+::: {.column width="50%"}
+```{r,fig.width=10,fig.height=8}
+rocpoint + annotate("point", x = spec2, y = sens2, colour = "blue")
+```
+:::
+
+True Positive Rate (Sensitivity) = $\frac{60}{60 + 12}$ = 0.833\
+False Positive Rate (1 - Specificity) = $\frac{4}{71 + 4}$ = 0.053
+:::
+
+## ROC Curve 설계
+
+::: columns
+::: {.column width="50%"}
+-   모든 가능한 threshold의 TPR vs FPR을 연결하면 ROC curve가 된다
+-   Random Classifier
+    -   랜덤하게 Cancer/Normal 배정한다면\
+        True positive rate = False Positive Rate
+:::
+
+::: {.column width="50%"}
+```{r,fig.width=10,fig.height=8}
+rocfull +
+  annotate("point", x = spec1, y = sens1, colour = "red") +
+  annotate("point", x = spec2, y = sens2, colour = "blue") +
+  geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "grey") +
+  geom_text(label = "Random Classifier", col = "grey", y=0.45, x=0.5, size= 6, angle = 40)
+```
+:::
+:::
+
+## AUC
+
+::: columns
+::: {.column width="40%"}
+-   AUC: Area Under Curve, ROC 아래 면적
+    -   Random classifier: AUC = 0.5
+    -   Perfect classifier: AUC = 1
+-   AUC를 이용해 모델의 분류 성능을 수치화하고 비교할 수 있다
+:::
+
+::: {.column width="60%"}
+<center>
+
+```{r,fig.width=10, fig.height=8}
+var1<-c("Sex", "Age", "Smoking", paste0("marker", c(1,2,7,11)))
+var2<-c("Sex", "Age", "Smoking", paste0("marker", 15:20))
+
+
+plots <- lapply(paste0("var", 1:2), function(x){
+  model.roc <- glm(as.formula(paste0("Group ~ ", paste(get(x), collapse = "+ "))), data = data, family = binomial)
+  roc<- pROC::roc(model.roc$y, model.roc$fitted.values, ci=T)
+  return(roc)
+}) %>% c
+datalabels <- lapply(plots, function(x){paste0("AUC = ",round(x$auc,3), " (", round(x$ci[1],3), ", ", round(x$ci[3],3), ")")}) %>% do.call(rbind,.)
+names(plots)<- paste(c(paste(var1, collapse = "_"), paste(var2, collapse = "_")), datalabels, sep = "\n")
+coord <- lapply(1:2, function(x){data.table(var = rep(x, length(plots[[x]]$sensitivities)), x= (1-plots[[x]]$specificities), y = plots[[x]]$sensitivities)}) %>% rbindlist %>%
+  .[, .SD[1], by = c("var", "y")] %>% .[order(x), .SD, keyby =c("var", "y")] %>% .[,.SD[1], keyby =c("var", "x")]
+
+
+p<-ggroc(plots,
+     legacy.axes = T) +
+  xlab("1 - Specificity (False Positive Rate)") + ylab("Sensitivity (True Positive Rate)") +
+  theme_classic() +
+  theme(legend.position = "bottom")+
+  labs(colour ="") +
+  geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "grey")
+
+for(i in 1:2) {
+  p <- p + 
+    geom_stepribbon(data=subset(coord,var==i),
+              aes(x=x, ymin=0, ymax=y), fill= i+1, alpha=0.3, direction = "vh", inherit.aes = F) +
+    geom_text(label = paste0("AUC = ", round(plots[[i]]$auc, 3)), col = i+1, y=0.8/i, x=0.15)
+    
+}
+
+# 
+# ci.list <- lapply(plots, ci.se, specificities = seq(0, 1, l = 25))
+# dat.ci.list <- lapply(ci.list, function(ciobj) 
+#   data.frame(x = as.numeric(rownames(ciobj)),
+#              lower = ciobj[, 1],
+#              upper = ciobj[, 3]))
+# 
+# for(i in 1:2) {
+#   p <- p + geom_ribbon(
+#     data = dat.ci.list[[i]],
+#     aes(x = 1-x, ymin = lower, ymax = upper),
+#     fill = i + 1,
+#     alpha = 0.2,
+#     inherit.aes = F) 
+#   } 
+p
+              
+```
+
+</center>
+:::
+:::
