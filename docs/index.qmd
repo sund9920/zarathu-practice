@@ -7,18 +7,19 @@ format:
 editor: visual
 ---
 
-## Intro
+## Contents
 
-1.  What is ROC?
-2.  Confusion Matrix
-3.  ROC Curve 설계
-4.  AUC
+1. What is ROC?
+2. Confusion Matrix
+3. ROC Curve 설계
+4. AUC
+5. 여러 모델간의 AUC 비교 
 
 ## What is ROC?
 
 -   ROC: Receiver Operating Characteristic
     -   Binary classifier system (ex. logistic regression model)의 성능 평가 기법
-    -   한마디로, logistic regression 모델이 우리의 데이터를 얼마나 잘 Cancer/Normal로 분류하는지 평가
+    -   한마디로, logistic regression 모델이 우리의 데이터를 얼마나 정확하게 Cancer/Normal로 분류하는지 평가
 
 ## Confusion Matrix: 예측값 vs. 실제값
 
